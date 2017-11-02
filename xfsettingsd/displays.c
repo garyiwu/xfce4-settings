@@ -513,6 +513,11 @@ xfce_displays_helper_screen_on_event (GdkXEvent *xevent,
                     changed = TRUE;
                 }
             }
+
+            /* Free the xfconf properties */
+            if (saved_outputs)
+                g_hash_table_destroy (saved_outputs);
+
             if (changed)
                 xfce_displays_helper_apply_all (helper);
 
