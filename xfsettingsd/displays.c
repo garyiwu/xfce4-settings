@@ -418,6 +418,8 @@ xfce_displays_helper_screen_on_event (GdkXEvent *xevent,
     gint                j;
     guint               n, m, nactive = 0;
     gboolean            found = FALSE, changed = FALSE;
+    GHashTable          *saved_outputs = NULL;
+    gchar               property[512];
 
     if (!e)
         return GDK_FILTER_CONTINUE;
@@ -483,6 +485,10 @@ xfce_displays_helper_screen_on_event (GdkXEvent *xevent,
         }
         else
         {
+            /* get the list of saved outputs from xfconf */
+            g_snprintf (property, sizeof (property), "/%s", DEFAULT_SCHEME_NAME);
+            saved_outputs = xfconf_channel_get_properties (helper->channel, property);
+
             /* Diff the new and old output list to find new outputs */
             for (n = 0; n < helper->outputs->len; ++n)
             {
@@ -501,27 +507,7 @@ xfce_displays_helper_screen_on_event (GdkXEvent *xevent,
                     if (output->info->crtc == None)
                     {
                         xfsettings_dbg (XFSD_DEBUG_DISPLAYS, "enabling crtc for %s", output->info->name);
-                        crtc = xfce_displays_helper_find_usable_crtc (helper, output);
-                        if (crtc)
-                        {
-                            crtc->mode = output->preferred_mode;
-                            crtc->rotation = RR_Rotate_0;
-                            if ((crtc->x > gdk_screen_width() + 1) || (crtc->y > gdk_screen_height() + 1)) {
-                                crtc->x = crtc->y = 0;
-                            } /* else - leave values from last time we saw the monitor */
-                            /* set width and height */
-                            for (j = 0; j < helper->resources->nmode; ++j)
-                            {
-                                if (helper->resources->modes[j].id == output->preferred_mode)
-                                {
-                                    crtc->width = helper->resources->modes[j].width;
-                                    crtc->height = helper->resources->modes[j].height;
-                                    break;
-                                }
-                            }
-                            xfce_displays_helper_set_outputs (crtc, output);
-                            crtc->changed = TRUE;
-                        }
+                        xfce_displays_helper_load_from_xfconf (helper, DEFAULT_SCHEME_NAME, saved_outputs, output);
                     }
 
                     changed = TRUE;
